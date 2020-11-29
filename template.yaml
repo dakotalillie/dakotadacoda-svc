@@ -40,6 +40,12 @@ Resources:
           Properties:
             Path: /send-email
             Method: GET
+      Environment:
+        Variables:
+          FROM_ADDRESS: dakota.lillie@icloud.com
+          TO_ADDRESS: dakota.lillie@icloud.com
+          SMTP_HOST: smtp.mail.me.com
+          SMTP_PORT: "587"
 
 Outputs:
   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
