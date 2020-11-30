@@ -2,14 +2,27 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"testing"
 
 	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 )
 
 var reqBodyVals map[string]string
+
+type mockedSsm struct {
+	ssmiface.SSMAPI
+	GetParameterOutput *ssm.GetParameterOutput
+	GetParameterError  error
+}
+
+func (m mockedSsm) GetParameter(in *ssm.GetParameterInput) (*ssm.GetParameterOutput, error) {
+	return m.GetParameterOutput, m.GetParameterError
+}
 
 func setup(t *testing.T) func(t *testing.T) {
 	os.Setenv("FROM_ADDRESS", "dakota@test.com")
@@ -34,14 +47,14 @@ func setup(t *testing.T) func(t *testing.T) {
 }
 
 func TestHandler(t *testing.T) {
-
 	t.Run("No from address", func(t *testing.T) {
 		teardown := setup(t)
 		defer teardown(t)
 
 		os.Unsetenv("FROM_ADDRESS")
 
-		res, err := handler(events.APIGatewayProxyRequest{})
+		h := handler{ssmSvc: mockedSsm{}}
+		res, err := h.Run(events.APIGatewayProxyRequest{})
 
 		if res.StatusCode != 500 {
 			t.Fatalf("status code should be 500, got %v", res.StatusCode)
@@ -58,7 +71,8 @@ func TestHandler(t *testing.T) {
 
 		os.Unsetenv("TO_ADDRESS")
 
-		res, err := handler(events.APIGatewayProxyRequest{})
+		h := handler{ssmSvc: mockedSsm{}}
+		res, err := h.Run(events.APIGatewayProxyRequest{})
 
 		if res.StatusCode != 500 {
 			t.Fatalf("status code should be 500, got %v", res.StatusCode)
@@ -75,7 +89,8 @@ func TestHandler(t *testing.T) {
 
 		os.Unsetenv("SMTP_HOST")
 
-		res, err := handler(events.APIGatewayProxyRequest{})
+		h := handler{ssmSvc: mockedSsm{}}
+		res, err := h.Run(events.APIGatewayProxyRequest{})
 
 		if res.StatusCode != 500 {
 			t.Fatalf("status code should be 500, got %v", res.StatusCode)
@@ -92,7 +107,8 @@ func TestHandler(t *testing.T) {
 
 		os.Unsetenv("SMTP_PORT")
 
-		res, err := handler(events.APIGatewayProxyRequest{})
+		h := handler{ssmSvc: mockedSsm{}}
+		res, err := h.Run(events.APIGatewayProxyRequest{})
 
 		if res.StatusCode != 500 {
 			t.Fatalf("status code should be 500, got %v", res.StatusCode)
@@ -107,7 +123,8 @@ func TestHandler(t *testing.T) {
 		teardown := setup(t)
 		defer teardown(t)
 
-		res, err := handler(events.APIGatewayProxyRequest{Body: "{\"test: wut}"})
+		h := handler{ssmSvc: mockedSsm{}}
+		res, err := h.Run(events.APIGatewayProxyRequest{Body: "{\"test: wut}"})
 
 		if res.StatusCode != 400 {
 			t.Fatalf("status code should be 400, got %v", res.StatusCode)
@@ -128,7 +145,8 @@ func TestHandler(t *testing.T) {
 				t.Fatal("Unable to marshal request body")
 			}
 
-			res, err := handler(events.APIGatewayProxyRequest{Body: string(reqBody)})
+			h := handler{ssmSvc: mockedSsm{}}
+			res, err := h.Run(events.APIGatewayProxyRequest{Body: string(reqBody)})
 
 			expectedResBody := fmt.Sprintf("Missing %s", key)
 			if res.StatusCode != 400 {
@@ -140,4 +158,26 @@ func TestHandler(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("SSM returns an error", func(t *testing.T) {
+		teardown := setup(t)
+		defer teardown(t)
+		reqBody, err := json.Marshal(reqBodyVals)
+		if err != nil {
+			t.Fatal("Unable to marshal request body")
+		}
+
+		mSsm := mockedSsm{GetParameterError: errors.New("Oops")}
+		h := handler{ssmSvc: mSsm}
+		res, err := h.Run(events.APIGatewayProxyRequest{Body: string(reqBody)})
+
+		expectedResBody := "Unable to get email password"
+		if res.StatusCode != 502 {
+			t.Fatalf("status code should be 502, got %v", res.StatusCode)
+		} else if res.Body != expectedResBody {
+			t.Fatalf("response body should be \"%v\", got \"%v\"", expectedResBody, res.Body)
+		} else if err == nil {
+			t.Fatal("err should not be nil")
+		}
+	})
 }

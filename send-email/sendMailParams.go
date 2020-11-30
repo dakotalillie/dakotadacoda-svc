@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ssm"
+	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 )
 
 type sendMailParams struct {
@@ -21,7 +21,7 @@ type sendMailParams struct {
 	Message  string // The message body of the email
 }
 
-func newSendMailParams(reqBody string) (sendMailParams, error) {
+func newSendMailParams(reqBody string, ssmSvc ssmiface.SSMAPI) (sendMailParams, error) {
 	params := sendMailParams{}
 
 	from := os.Getenv("FROM_ADDRESS")
@@ -56,9 +56,9 @@ func newSendMailParams(reqBody string) (sendMailParams, error) {
 		}
 	}
 
-	password, err := getEmailPassword()
+	password, err := getEmailPassword(ssmSvc)
 	if err != nil {
-		return params, &codedError{Code: 500, Message: "Unable to get email password"}
+		return params, &codedError{Code: 502, Message: "Unable to get email password"}
 	}
 
 	params.From = from
@@ -74,10 +74,8 @@ func newSendMailParams(reqBody string) (sendMailParams, error) {
 	return params, nil
 }
 
-func getEmailPassword() (string, error) {
-	sess := session.Must(session.NewSession())
-	svc := ssm.New(sess)
-	res, err := svc.GetParameter(&ssm.GetParameterInput{Name: aws.String("/DakotaDaCoda/EMAIL_PASSWORD"), WithDecryption: aws.Bool(true)})
+func getEmailPassword(ssmSvc ssmiface.SSMAPI) (string, error) {
+	res, err := ssmSvc.GetParameter(&ssm.GetParameterInput{Name: aws.String("/DakotaDaCoda/EMAIL_PASSWORD"), WithDecryption: aws.Bool(true)})
 	if err != nil {
 		return "", err
 	}
