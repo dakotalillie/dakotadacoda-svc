@@ -10,24 +10,23 @@ import (
 func sendMail(params *sendMailParams) error {
 	from := mail.Address{Name: "Dakota Lillie", Address: params.From}
 	to := mail.Address{Name: "Dakota Lillie", Address: params.To}
-	subj := "This is the email subject"
-	body := "This is an example body"
 
 	headers := make(map[string]string)
 	headers["From"] = from.String()
 	headers["To"] = to.String()
-	headers["Subject"] = subj
+	headers["Subject"] = params.Subject
+	headers["Reply-To"] = params.Email
 
 	message := ""
 	for k, v := range headers {
 		message += fmt.Sprintf("%s: %s\r\n", k, v)
 	}
-	message += "\r\n" + body
+	message += fmt.Sprintf(
+		"\r\nNew message received from %s via DakotaDaCoda:\n\n%s", params.Name, params.Message,
+	)
 
 	servername := fmt.Sprintf("%s:%s", params.Host, params.Port)
-
 	auth := smtp.PlainAuth("", params.From, params.Password, params.Host)
-
 	tlsconfig := &tls.Config{ServerName: params.Host}
 
 	client, err := smtp.Dial(servername)
