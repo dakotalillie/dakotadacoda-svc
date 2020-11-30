@@ -1,13 +1,10 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: >
-  dakotadacoda-svc
-  
-  Sample SAM Template for dakotadacoda-svc
+Description: SAM Template for dakotadacoda-svc
 
 Globals:
   Function:
-    Timeout: 10
+    Timeout: 15
 
 Resources:
   SendEmailFunction:
@@ -29,6 +26,9 @@ Resources:
           TO_ADDRESS: dakota.lillie@icloud.com
           SMTP_HOST: smtp.mail.me.com
           SMTP_PORT: "587"
+      Policies:
+      - SSMParameterReadPolicy:
+          ParameterName: DakotaDaCoda/EMAIL_PASSWORD # Make sure you omit the leading slash
 
 Outputs:
   SendEmailApi:
