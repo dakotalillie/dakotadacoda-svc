@@ -9,7 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/ssm/ssmiface"
 )
 
-type sendMailParams struct {
+// EmailConfig is a struct which contains the requisite values for sending an email.
+type EmailConfig struct {
 	From     string // The email address the email will be sent from
 	To       string // The email address the email will be sent to
 	Host     string // The SMTP host for the email server
@@ -21,63 +22,58 @@ type sendMailParams struct {
 	Message  string // The message body of the email
 }
 
-func newSendMailParams(reqBody string, ssmSvc ssmiface.SSMAPI) (sendMailParams, error) {
-	params := sendMailParams{}
+// NewEmailConfig creates a new email config, drawing values from environment variables, the request
+// body, and SSM in AWS.
+func NewEmailConfig(reqBody string, ssmSvc ssmiface.SSMAPI) (EmailConfig, error) {
+	config := EmailConfig{}
 
 	from := os.Getenv("FROM_ADDRESS")
 	if from == "" {
-		return params, &codedError{Code: 500, Message: "Missing from address"}
+		return config, &codedError{Code: 500, Message: "Missing from address"}
 	}
 
 	to := os.Getenv("TO_ADDRESS")
 	if to == "" {
-		return params, &codedError{Code: 500, Message: "Missing to address"}
+		return config, &codedError{Code: 500, Message: "Missing to address"}
 	}
 
 	host := os.Getenv("SMTP_HOST")
 	if host == "" {
-		return params, &codedError{Code: 500, Message: "Missing host"}
+		return config, &codedError{Code: 500, Message: "Missing host"}
 	}
 
 	port := os.Getenv("SMTP_PORT")
 	if port == "" {
-		return params, &codedError{Code: 500, Message: "Missing port"}
+		return config, &codedError{Code: 500, Message: "Missing port"}
 	}
 
 	parsedBody := make(map[string]string)
 	err := json.Unmarshal([]byte(reqBody), &parsedBody)
 	if err != nil {
-		return params, &codedError{Code: 400, Message: "Unable to unmarshal request body"}
+		return config, &codedError{Code: 400, Message: "Unable to unmarshal request body"}
 	}
 
 	for _, key := range []string{"name", "email", "subject", "message"} {
 		if parsedBody[key] == "" {
-			return params, &codedError{Code: 400, Message: "Missing " + key}
+			return config, &codedError{Code: 400, Message: "Missing " + key}
 		}
 	}
 
-	password, err := getEmailPassword(ssmSvc)
-	if err != nil {
-		return params, &codedError{Code: 502, Message: "Unable to get email password"}
-	}
-
-	params.From = from
-	params.To = to
-	params.Host = host
-	params.Port = port
-	params.Password = password
-	params.Name = parsedBody["name"]
-	params.Email = parsedBody["email"]
-	params.Subject = parsedBody["subject"]
-	params.Message = parsedBody["message"]
-
-	return params, nil
-}
-
-func getEmailPassword(ssmSvc ssmiface.SSMAPI) (string, error) {
 	res, err := ssmSvc.GetParameter(&ssm.GetParameterInput{Name: aws.String("/DakotaDaCoda/EMAIL_PASSWORD"), WithDecryption: aws.Bool(true)})
 	if err != nil {
-		return "", err
+		return config, &codedError{Code: 502, Message: "Unable to get email password"}
 	}
-	return *res.Parameter.Value, nil
+	password := *res.Parameter.Value
+
+	config.From = from
+	config.To = to
+	config.Host = host
+	config.Port = port
+	config.Password = password
+	config.Name = parsedBody["name"]
+	config.Email = parsedBody["email"]
+	config.Subject = parsedBody["subject"]
+	config.Message = parsedBody["message"]
+
+	return config, nil
 }

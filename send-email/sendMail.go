@@ -7,27 +7,27 @@ import (
 	"net/smtp"
 )
 
-func sendMail(params *sendMailParams) error {
-	from := mail.Address{Name: "Dakota Lillie", Address: params.From}
-	to := mail.Address{Name: "Dakota Lillie", Address: params.To}
+func sendMail(config *EmailConfig) error {
+	from := mail.Address{Name: "Dakota Lillie", Address: config.From}
+	to := mail.Address{Name: "Dakota Lillie", Address: config.To}
 
 	headers := make(map[string]string)
 	headers["From"] = from.String()
 	headers["To"] = to.String()
-	headers["Subject"] = params.Subject
-	headers["Reply-To"] = params.Email
+	headers["Subject"] = config.Subject
+	headers["Reply-To"] = config.Email
 
 	message := ""
 	for k, v := range headers {
 		message += fmt.Sprintf("%s: %s\r\n", k, v)
 	}
 	message += fmt.Sprintf(
-		"\r\nNew message received from %s via DakotaDaCoda:\n\n%s", params.Name, params.Message,
+		"\r\nNew message received from %s via DakotaDaCoda:\n\n%s", config.Name, config.Message,
 	)
 
-	servername := fmt.Sprintf("%s:%s", params.Host, params.Port)
-	auth := smtp.PlainAuth("", params.From, params.Password, params.Host)
-	tlsconfig := &tls.Config{ServerName: params.Host}
+	servername := fmt.Sprintf("%s:%s", config.Host, config.Port)
+	auth := smtp.PlainAuth("", config.From, config.Password, config.Host)
+	tlsconfig := &tls.Config{ServerName: config.Host}
 
 	client, err := smtp.Dial(servername)
 	if err != nil {
