@@ -15,7 +15,8 @@ func (h *handler) Run(request events.APIGatewayProxyRequest) (events.APIGatewayP
 		return events.APIGatewayProxyResponse{StatusCode: codedError.Code, Body: codedError.Error()}, codedError
 	}
 
-	if err = sendMail(&config); err != nil {
+	mailer := Mailer{config}
+	if err = mailer.Send(); err != nil {
 		return events.APIGatewayProxyResponse{StatusCode: 502, Body: err.Error()}, err
 	}
 
