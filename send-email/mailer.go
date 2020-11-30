@@ -61,13 +61,13 @@ func (m Mailer) makeMessage() (message string) {
 	headers["From"] = from.String()
 	headers["To"] = to.String()
 	headers["Subject"] = m.Subject
-	headers["Reply-To"] = m.Email
+	headers["Reply-To"] = m.SenderEmail
 
 	for k, v := range headers {
 		message += fmt.Sprintf("%s: %s\r\n", k, v)
 	}
 	message += fmt.Sprintf(
-		"\r\nNew message received from %s via DakotaDaCoda:\n\n%s", m.Name, m.Message,
+		"\r\nNew message received from %s via DakotaDaCoda:\n\n%s", m.SenderName, m.Message,
 	)
 
 	return message

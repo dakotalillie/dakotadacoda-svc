@@ -11,15 +11,15 @@ import (
 
 // EmailConfig is a struct which contains the requisite values for sending an email.
 type EmailConfig struct {
-	From     string // The email address the email will be sent from
-	To       string // The email address the email will be sent to
-	Host     string // The SMTP host for the email server
-	Port     string // The SMTP port for the email server
-	Password string // The password for the sending account
-	Name     string // The name of the person who is sending the email
-	Email    string // The email of the person who is sending the email, used for the reply to
-	Subject  string // The subject of the email
-	Message  string // The message body of the email
+	From        string // The email address the email will be sent from
+	To          string // The email address the email will be sent to
+	Host        string // The SMTP host for the email server
+	Port        string // The SMTP port for the email server
+	Password    string // The password for the sending account
+	SenderName  string // The name of the person who is sending the email
+	SenderEmail string // The email of the person who is sending the email, used for the reply to
+	Subject     string // The subject of the email
+	Message     string // The message body of the email
 }
 
 // NewEmailConfig creates a new email config, drawing values from environment variables, the request
@@ -70,8 +70,8 @@ func NewEmailConfig(reqBody string, ssmSvc ssmiface.SSMAPI) (EmailConfig, error)
 	config.Host = host
 	config.Port = port
 	config.Password = password
-	config.Name = parsedBody["name"]
-	config.Email = parsedBody["email"]
+	config.SenderName = parsedBody["name"]
+	config.SenderEmail = parsedBody["email"]
 	config.Subject = parsedBody["subject"]
 	config.Message = parsedBody["message"]
 
