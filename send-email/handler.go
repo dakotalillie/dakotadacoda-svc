@@ -10,9 +10,10 @@ type handler struct {
 }
 
 func (h *handler) Run(request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	// These values were copied from here: https://docs.aws.amazon.com/apigateway/latest/developerguide/how-to-cors.html
 	headers := make(map[string]string)
 	headers["Access-Control-Allow-Headers"] = "Content-Type"
-	headers["Access-Control-Allow-Origin"] = "*"
+	headers["Access-Control-Allow-Origin"] = "dakotadacoda.com"
 	headers["Access-Control-Allow-Methods"] = "OPTIONS,POST"
 
 	config, err := NewEmailConfig(request.Body, h.ssmSvc)
