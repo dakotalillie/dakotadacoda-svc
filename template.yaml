@@ -29,6 +29,18 @@ Resources:
       Policies:
       - SSMParameterReadPolicy:
           ParameterName: DakotaDaCoda/EMAIL_PASSWORD # Make sure you omit the leading slash
+  SendEmailOptionsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: send-email-options/
+      Handler: send-email-options
+      Runtime: go1.x
+      Events:
+        CatchAll:
+          Type: Api
+          Properties:
+            Path: /send-email
+            Method: OPTIONS
 
 Outputs:
   SendEmailApi:
